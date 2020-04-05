@@ -1,0 +1,95 @@
+<html>
+
+<head>
+    <title>Conway's Game of Life</title>
+</head>
+
+<body>
+    <canvas id="main" width="700" height="700" style="position: absolute; top: 0;left: 0;"></canvas>
+    <div style="position: absolute; top: 20px; left: 800;">
+        <div><b>Changed:</b><span id="count"></span></div>
+    </div>
+
+    <script>
+        function Renderer(canvasId, world) {
+            /** @type {HTMLCanvasElement} */
+            this.canvas = document.getElementById(canvasId);
+            /** @type {CanvasRenderingContext2D} */
+            this.ctx = this.canvas.getContext("2d");
+            this.world = world;
+            this.cellSize = Math.min(
+                Math.floor(this.canvas.width / world.width),
+                Math.floor(this.canvas.height / world.width)
+            );
+            this.lastDraw = Date.now();
+            this.drawWorld = function () {
+                let c = 0;
+                window.requestAnimationFrame(() => { this.drawWorld(); });
+                for (let x = 0; x < world.width; x++) {
+                    for (var y = 0; y < world.height; y++) {
+                        let [state, lastState] = world.getCell(x, y);
+                        if (state === lastState) {
+                            continue; //Optimize rendering
+                        }
+                        if (state === 0) {
+                            this.ctx.fillStyle = 'rgb(255,255,255)';
+                        } else {
+                            this.ctx.fillStyle = 'rgb(0,0,0)';
+                        }
+                        this.ctx.fillRect(this.cellSize * x, this.cellSize * y, this.cellSize, this.cellSize);
+                        c++;
+                    }
+                }
+                this.world.nextGeneration();
+                this.lastDraw = Date.now();
+                document.getElementById("count").innerText = c;
+            };
+        }
+
+        function World(width, height) {
+            this.width = width;
+            this.height = height;
+            this.state = new Array(width * height)
+                .fill(0)
+                .map((item, index) => { return Math.round(Math.random()); });
+            this.lastState = [].fill(0);
+
+            this.getCell = function (x, y) {
+                var number = y * this.width + x;
+                return [this.state[number], this.lastState[number]];
+            };
+
+            this.nextGeneration = function () {
+                this.lastState = this.state;
+                this.state = this.state.map((item, index) => {
+                    let c = this.getNeighborhoodCount(index);
+                    if (item === 0) {
+                        return (c === 3) ? 1 : 0;
+                    } else {
+                        return (c === 3 || c === 2) ? 1 : 0;
+                    }
+                });
+            };
+
+
+            this.getNeighborhoodCount = function (index) {
+                let count =
+                    this.state[index - 1] +
+                    this.state[index + 1] +
+                    this.state[index + this.width] +
+                    this.state[index + this.width + 1] +
+                    this.state[index + this.width - 1] +
+                    this.state[index - this.width] +
+                    this.state[index - this.width + 1] +
+                    this.state[index - this.width - 1];
+                return count;
+            };
+        }
+
+        var world = new World(350, 350);
+        var renderer = new Renderer("main", world);
+        window.requestAnimationFrame(() => { renderer.drawWorld(); });
+    </script>
+</body>
+
+</html>
